@@ -1,5 +1,7 @@
+import os
 import pandas as pd
 
+DATA_DIR = os.path.dirname(os.path.realpath(__file__))
 
 def load_wine_quality(type: str ='red') -> pd.DataFrame:
     """Loads the wine quality data from the UCI Machine Learning Database.
@@ -36,18 +38,18 @@ def load_wine_quality(type: str ='red') -> pd.DataFrame:
 
     if type != 'white':
         try:
-            df_red = pd.read_feather('wine_quality_red.feather')
+            df_red = pd.read_feather(DATA_DIR + '/wine_quality_red.feather')
         except FileNotFoundError:
             _download_wine_data()
-            df_red = pd.read_feather('wine_quality_red.feather')
+            df_red = pd.read_feather(DATA_DIR + '/wine_quality_red.feather')
         if type == 'red':
             return df_red
     if type != 'red':
         try:
-            df_white = pd.read_feather('wine_quality_white.feather')
+            df_white = pd.read_feather(DATA_DIR + '/wine_quality_white.feather')
         except FileNotFoundError:
             _download_wine_data()
-            df_white = pd.read_feather('wine_quality_white.feather')
+            df_white = pd.read_feather(DATA_DIR + '/wine_quality_white.feather')
         if type == 'white':
             return df_white
 
@@ -65,9 +67,9 @@ def _download_wine_data():
         return df
 
     df_red = download_df('red')
-    df_red.to_feather('wine_quality_red.feather', compression='lz4', version=2)
+    df_red.to_feather(DATA_DIR + '/wine_quality_red.feather', compression='lz4', version=2)
     df_white = download_df('white')
-    df_white.to_feather('wine_quality_white.feather', compression='lz4', version=2)
+    df_white.to_feather(DATA_DIR + '/wine_quality_white.feather', compression='lz4', version=2)
 
 
 def _download_adult_data():
@@ -80,9 +82,9 @@ def _download_adult_data():
         return df
     
     df_train = download_df('data')
-    df_train.to_feather('adult_train.feather', compression='lz4', version=2)
+    df_train.to_feather(DATA_DIR + '/adult_train.feather', compression='lz4', version=2)
     df_test = download_df('test')
-    df_test.to_feather('adult_test.feather', compression='lz4', version=2)
+    df_test.to_feather(DATA_DIR + '/adult_test.feather', compression='lz4', version=2)
 
 
 def load_adult_data(type: str='both') -> pd.DataFrame:
@@ -120,19 +122,19 @@ def load_adult_data(type: str='both') -> pd.DataFrame:
     
     if type != 'test':
         try:
-            df_train = pd.read_feather('adult_train.feather')
+            df_train = pd.read_feather(DATA_DIR + '/adult_train.feather')
         except FileNotFoundError:
             _download_adult_data()
-            df_train = pd.read_feather('adult_train.feather')
+            df_train = pd.read_feather(DATA_DIR + '/adult_train.feather')
         if type=='train':
             return df_train
     
     if type != 'train':
         try:
-            df_test = pd.read_feather('adult_test.feather')
+            df_test = pd.read_feather(DATA_DIR + '/adult_test.feather')
         except FileNotFoundError:
             _download_adult_data()
-            df_test = pd.read_feather('adult_test.feather')
+            df_test = pd.read_feather(DATA_DIR + '/adult_test.feather')
         if type=='test':
             return df_test
     

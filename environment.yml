@@ -12,5 +12,7 @@ dependencies:
         - scikit-learn >= 0.24.2
         - shap >= 0.39.0
         - pyarrow >= 4.0.0
-        - lightgbm
         - bayesian-optimization >= 1.1.0
+        - lightgbm >= 3.2.1
+        - xgboost >= 1.4.0
+        - dalex >= 1.1.0
