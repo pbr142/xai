@@ -16,3 +16,4 @@ dependencies:
         - lightgbm >= 3.2.1
         - xgboost >= 1.4.0
         - dalex >= 1.1.0
+        - xlrd >= 2.0.1
