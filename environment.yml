@@ -13,3 +13,4 @@ dependencies:
         - shap >= 0.39.0
         - pyarrow >= 4.0.0
         - lightgbm
+        - bayesian-optimization >= 1.1.0
