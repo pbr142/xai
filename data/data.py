@@ -2,8 +2,29 @@ import os
 import pandas as pd
 
 DATA_DIR = os.path.dirname(os.path.realpath(__file__))
+WINE_RED_PATH = os.path.join(DATA_DIR, 'wine_quality_red.feather')
+WINE_WHITE_PATH = os.path.join(DATA_DIR, 'wine_quality_white.feather')
+ADULT_TRAIN_PATH = os.path.join(DATA_DIR, 'adult_train.feather')
+ADULT_TEST_PATH = os.path.join(DATA_DIR, 'adult_test.feather')
 
-def load_wine_quality(type: str ='red') -> pd.DataFrame:
+
+def _download_wine_data():
+
+    def download_df(type):
+        assert type in ['red', 'white']
+        url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-' + type + '.csv'
+        df = pd.read_csv(url, sep=';')
+        df.rename(str.title, axis='columns', inplace=True)
+        df.rename(columns={'Ph': 'pH'}, inplace=True)
+        return df
+
+    df_red = download_df('red')
+    df_red.to_feather(WINE_RED_PATH, compression='lz4', version=2)
+    df_white = download_df('white')
+    df_white.to_feather(WINE_WHITE_PATH, compression='lz4', version=2)
+
+
+def load_wine_quality(type: str ='both', return_X_y: bool=False, binary: bool=False) -> pd.DataFrame:
     """Loads the wine quality data from the UCI Machine Learning Database.
     The data is described [here](https://archive.ics.uci.edu/ml/datasets/wine+quality)
     There are eleven features:
@@ -28,48 +49,52 @@ def load_wine_quality(type: str ='red') -> pd.DataFrame:
     There are no missing values in the data.
 
     Args:
-        type (str, optional): Which data to return, must be 'red', 'white', or 'both'. Defaults to 'red'.
+        type (str, optional): Which data to return, must be 'red', 'white', or 'both'. Defaults to 'both'.
+        return_X_y (bool, optional): Return original data (False) or split by features and target (True). Defaults to 'False'.
+        binary (bool, optional): Return target as binary variable (High quality/Low quality), defined as Quality>=7. Ignored if return_X_y=False
 
     Returns:
         pd.DataFrame: If `type` is `'red'` or `'white'` a single DataFrame is returned. For `type='both'`, a tuple of DataFrames `(df_red, df_white)` is returned
     """
     
     assert type in ['red', 'white', 'both'], "type has to be either 'red', 'white', or 'both'"
+    assert isinstance(return_X_y, bool), "return_X_y has to be either True or False"
+    assert isinstance(binary, bool), "binary has to be either True or False"
 
     if type != 'white':
-        try:
-            df_red = pd.read_feather(DATA_DIR + '/wine_quality_red.feather')
-        except FileNotFoundError:
+        if not os.path.exists(WINE_RED_PATH):
             _download_wine_data()
-            df_red = pd.read_feather(DATA_DIR + '/wine_quality_red.feather')
-        if type == 'red':
-            return df_red
+        df_red = pd.read_feather(WINE_RED_PATH)
+    
     if type != 'red':
-        try:
-            df_white = pd.read_feather(DATA_DIR + '/wine_quality_white.feather')
-        except FileNotFoundError:
+        if not os.path.exists(WINE_WHITE_PATH):
             _download_wine_data()
-            df_white = pd.read_feather(DATA_DIR + '/wine_quality_white.feather')
-        if type == 'white':
+        df_white = pd.read_feather(WINE_WHITE_PATH)
+    
+    if return_X_y:
+        if type=='both':
+            df_red['Type'] = 'Red'
+            df_white['Type'] = 'White'
+            df = pd.concat([df_red, df_white])
+            df.reset_index(inplace=True, drop=True)
+        elif type=='red':
+            df = df_red
+        elif type=='white':
+            df = df_white
+        
+        y = df['Quality']
+        if binary:
+            y =  y >= 7
+        X = df.drop(columns='Quality')
+
+        return X, y
+    else:
+        if type=='both':
+            return df_red, df_white
+        elif type=='red':
+            return df_red
+        elif type=='white':
             return df_white
-
-    return df_red, df_white
-
-
-def _download_wine_data():
-
-    def download_df(type):
-        assert type in ['red', 'white']
-        url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-' + type + '.csv'
-        df = pd.read_csv(url, sep=';')
-        df.rename(str.title, axis='columns', inplace=True)
-        df.rename(columns={'Ph': 'pH'}, inplace=True)
-        return df
-
-    df_red = download_df('red')
-    df_red.to_feather(DATA_DIR + '/wine_quality_red.feather', compression='lz4', version=2)
-    df_white = download_df('white')
-    df_white.to_feather(DATA_DIR + '/wine_quality_white.feather', compression='lz4', version=2)
 
 
 def _download_adult_data():
