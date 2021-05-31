@@ -17,3 +17,4 @@ dependencies:
         - xgboost >= 1.4.0
         - dalex >= 1.1.0
         - openpyxl >= 3.0.7
+        - scikit-optimize >= 0.8.1

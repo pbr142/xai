@@ -144,7 +144,7 @@ def load_adult_data(type: str='both') -> pd.DataFrame:
 def _download_energy_data():
     url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/00242/ENB2012_data.xlsx'
     names = ['Relative Compactness', 'Surface Area', 'Wall Area', 'Roof Area', 'Overall Height',
-             'Orientation', 'Glazing Area', 'Glaxing Area Distribution', 'Heating Load', 'Cooling Load']
+             'Orientation', 'Glazing Area', 'Glazing Area Distribution', 'Heating Load', 'Cooling Load']
     df = pd.read_excel(url, names=names, usecols=range(len(names)))
     
     df.to_feather(DATA_DIR + '/energy.feather', compression='lz4', version=2)
