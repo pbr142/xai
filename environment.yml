@@ -25,3 +25,7 @@ dependencies:
         - dalex
         - optuna
         - category_encoders
+        - graphviz
+        - pip:
+                - alibi
+                - PyALE
