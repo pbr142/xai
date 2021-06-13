@@ -6,26 +6,26 @@ channels:
 dependencies:
         - python
         - pip
+        - catboost
+        - category_encoders
+        - dalex
+        - graphviz
         - jupyterlab
         - jupyterlab-git
         - jupyterlab-variableinspector
         - jupyter-lsp-python
         - jupyterlab-spellchecker
-        - seaborn
+        - lightgbm
+        - optuna
         - pandas
+        - pdpbox
         - plotly
+        - pyarrow
         - scikit-learn
+        - seaborn
         - sklearn-pandas
         - shap
-        - pyarrow
         - xgboost
-        - catboost
-        - lightgbm
-        - xgboost
-        - dalex
-        - optuna
-        - category_encoders
-        - graphviz
         - pip:
                 - alibi
                 - PyALE

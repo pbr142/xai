@@ -208,3 +208,44 @@ def load_adult_data(type: str='both') -> pd.DataFrame:
             return df_test
     
     return df_train, df_test
+
+
+def _download_energy_data():
+    url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/00242/ENB2012_data.xlsx'
+    names = ['Relative Compactness', 'Surface Area', 'Wall Area', 'Roof Area', 'Overall Height',
+             'Orientation', 'Glazing Area', 'Glazing Area Distribution', 'Heating Load', 'Cooling Load']
+    df = pd.read_excel(url, names=names, usecols=range(len(names)))
+    
+    df.to_feather(DATA_DIR + '/energy.feather', compression='lz4', version=2)
+
+
+def load_energy_data() -> pd.DataFrame:
+    """Load Energy efficiency dataset from the UCI Machine Learning Database.
+    The data is described [here](https://archive.ics.uci.edu/ml/datasets/Energy+efficiency)
+    
+    There are eight features
+    
+    X1 Relative Compactness
+    X2 Surface Area
+    X3 Wall Area
+    X4 Roof Area
+    X5 Overall Height
+    X6 Orientation
+    X7 Glazing Area
+    X8 Glazing Area Distribution
+    
+    and two response variables
+    
+    y1 Heating Load
+    y2 Cooling Load
+    
+
+    Returns:
+        pd.DataFrame: DataFrame of shape (768,10)
+    """
+    try:
+        df = pd.read_feather(DATA_DIR + '/energy.feather')
+    except FileNotFoundError:
+        _download_energy_data()
+        df = pd.read_feather(DATA_DIR + '/energy.feather')
+    return df
