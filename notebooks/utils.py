@@ -44,20 +44,24 @@ def default_pipeline(X: pd.DataFrame, high_cardinality_threshold: int=11, numeri
     return feature_pipeline
 
 
-def fit_model(model, param_distributions: dict, X: pd.DataFrame, y: pd.Series):
+def fit_model(model, X: pd.DataFrame, y: pd.Series, param_distributions: dict={}):
     feature_pipeline = default_pipeline(X)
     model = Pipeline([
         ('features', feature_pipeline),
         ('model', model)
     ])
 
-    param_distributions = {'model__'+k:v for k,v in param_distributions.items()}
+    if param_distributions:
+        param_distributions = {'model__'+k:v for k,v in param_distributions.items()}
 
-    model_search = OptunaSearchCV(model, param_distributions, n_trials=20*len(param_distributions),
-    n_jobs=-1, random_state=142, verbose=0)
+        model_search = OptunaSearchCV(model, param_distributions, n_trials=20*len(param_distributions), refit=True,
+        n_jobs=-1, random_state=142, verbose=0)
 
-    model_search.fit(X, y)
-    best_model = model_search.best_estimator_
+        model_search.fit(X, y)
+        best_model = model_search.best_estimator_
+    else:
+        best_model = model.fit(X,y)
+    
     setattr(best_model, 'training_data', (X, y))
 
     return best_model
