@@ -1,11 +1,49 @@
+import catboost as cb
 import os
 import pandas as pd
+from sklearn.preprocessing import OrdinalEncoder
 
 DATA_DIR = os.path.dirname(os.path.realpath(__file__))
 WINE_RED_PATH = os.path.join(DATA_DIR, 'wine_quality_red.feather')
 WINE_WHITE_PATH = os.path.join(DATA_DIR, 'wine_quality_white.feather')
 ADULT_TRAIN_PATH = os.path.join(DATA_DIR, 'adult_train.feather')
 ADULT_TEST_PATH = os.path.join(DATA_DIR, 'adult_test.feather')
+
+
+def impute_cat_column(y: pd.Series, X: pd.DataFrame) -> pd.Series:
+    """Impute missing values of a categorical pandas Series using a catboost classifier.
+    Missing values of categorical features in X are imputed using their mode.
+
+    Args:
+        y (pd.Series): Series for which to impute missing values
+        X (pd.DataFrame): Features to use for imputation
+
+    Returns:
+        pd.Series: y with missing values imputed
+    """
+
+    cat_features = X.select_dtypes('object').columns
+    X[cat_features] = X[cat_features].fillna(X[cat_features].mode().iloc[0])
+
+    idx_valid = y.notnull()
+    y_valid = y[idx_valid]
+
+    if y.dtype == 'O':
+        enc = OrdinalEncoder()
+        y_valid = enc.fit_transform(y_valid.values.reshape(-1,1))
+    
+    model = cb.CatBoostClassifier()
+    _ = model.fit(X[idx_valid], y_valid, cat_features=cat_features, verbose=0)
+
+    y_pred = model.predict(X[~idx_valid])
+    if y.dtype == 'O':
+        y_pred = enc.inverse_transform(y_pred)
+    
+    cur_opt = pd.get_option('mode.chained_assignment')
+    pd.set_option('mode.chained_assignment',None)
+    y.loc[~idx_valid] = y_pred.reshape(-1)
+    pd.set_option('mode.chained_assignment',cur_opt)
+    return y
 
 
 def _download_wine_data():
@@ -103,13 +141,21 @@ def _download_adult_data():
         names = ['Age', 'Workclass', 'Final Weight', 'Education', 'Years of Education', 'Marital Status', 
         'Occupation', 'Relationship', 'Race', 'Sex', 'Capital Gain', 'Capital Loss', 'Hours per Week', 
         'Native Country', 'Income']
-        df = pd.read_csv(url, header=0, names=names)
+        df = pd.read_csv(url, header=0, names=names, na_values=['?', ' ?'])
+        for col in df.select_dtypes('object').columns:
+            df[col] = df[col].str.strip()
         return df
-    
     df_train = download_df('data')
-    df_train.to_feather(DATA_DIR + '/adult_train.feather', compression='lz4', version=2)
     df_test = download_df('test')
-    df_test.to_feather(DATA_DIR + '/adult_test.feather', compression='lz4', version=2)
+    df = pd.concat([df_train, df_test], keys=['train', 'test'])
+    na_cols = df.columns[df.isnull().sum() > 0]
+    for col in na_cols:
+        df[col] = impute_cat_column(df[col], df.drop(columns=col))
+    df_train = df.loc['train']
+    df_test = df.loc['test']
+
+    df_train.to_feather(ADULT_TRAIN_PATH, compression='lz4', version=2)
+    df_test.to_feather(ADULT_TEST_PATH, compression='lz4', version=2)
 
 
 def load_adult_data(type: str='both') -> pd.DataFrame:
@@ -146,21 +192,60 @@ def load_adult_data(type: str='both') -> pd.DataFrame:
     assert type in ['train', 'test', 'both'], "type has to be either 'train', 'test', or 'both'"
     
     if type != 'test':
-        try:
-            df_train = pd.read_feather(DATA_DIR + '/adult_train.feather')
-        except FileNotFoundError:
+        if not os.path.exists(ADULT_TRAIN_PATH):
             _download_adult_data()
-            df_train = pd.read_feather(DATA_DIR + '/adult_train.feather')
+        df_train = pd.read_feather(ADULT_TRAIN_PATH)
+
         if type=='train':
             return df_train
     
     if type != 'train':
-        try:
-            df_test = pd.read_feather(DATA_DIR + '/adult_test.feather')
-        except FileNotFoundError:
+        if not os.path.exists(ADULT_TEST_PATH):
             _download_adult_data()
-            df_test = pd.read_feather(DATA_DIR + '/adult_test.feather')
+        df_test = pd.read_feather(ADULT_TEST_PATH)
+
         if type=='test':
             return df_test
     
     return df_train, df_test
+
+
+def _download_energy_data():
+    url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/00242/ENB2012_data.xlsx'
+    names = ['Relative Compactness', 'Surface Area', 'Wall Area', 'Roof Area', 'Overall Height',
+             'Orientation', 'Glazing Area', 'Glazing Area Distribution', 'Heating Load', 'Cooling Load']
+    df = pd.read_excel(url, names=names, usecols=range(len(names)))
+    
+    df.to_feather(DATA_DIR + '/energy.feather', compression='lz4', version=2)
+
+
+def load_energy_data() -> pd.DataFrame:
+    """Load Energy efficiency dataset from the UCI Machine Learning Database.
+    The data is described [here](https://archive.ics.uci.edu/ml/datasets/Energy+efficiency)
+    
+    There are eight features
+    
+    X1 Relative Compactness
+    X2 Surface Area
+    X3 Wall Area
+    X4 Roof Area
+    X5 Overall Height
+    X6 Orientation
+    X7 Glazing Area
+    X8 Glazing Area Distribution
+    
+    and two response variables
+    
+    y1 Heating Load
+    y2 Cooling Load
+    
+
+    Returns:
+        pd.DataFrame: DataFrame of shape (768,10)
+    """
+    try:
+        df = pd.read_feather(DATA_DIR + '/energy.feather')
+    except FileNotFoundError:
+        _download_energy_data()
+        df = pd.read_feather(DATA_DIR + '/energy.feather')
+    return df
